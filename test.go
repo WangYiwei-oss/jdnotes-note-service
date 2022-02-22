@@ -2,11 +2,42 @@ package main
 
 import (
 	"fmt"
-	uuid "github.com/satori/go.uuid"
+	"github.com/WangYiwei-oss/jdnotes-note-service/src/models"
+	"strings"
 )
 
+func convertNotesToObj(note *models.Note) map[string]interface{} {
+	ret := make(map[string]interface{})
+	relativePath := strings.TrimPrefix(note.NotePath, note.RootPath+"/")
+	classes := strings.Split(relativePath, "/")
+	currentMap := ret
+	for i := 0; i < len(classes); i++ {
+		if _, ok := currentMap[classes[i]]; ok {
+			currentMap = currentMap[classes[i]].(map[string]interface{})
+		} else {
+			if i == len(classes)-1 {
+				currentMap[classes[i]] = map[string]interface{}{
+					"title": note.Title,
+					"uuid":  note.UUID,
+				}
+			} else {
+				currentMap[classes[i]] = make(map[string]interface{})
+				currentMap = currentMap[classes[i]].(map[string]interface{})
+			}
+		}
+	}
+	return ret
+}
+
 func main() {
-	fmt.Println(uuid.NewV1().String())
+	a := models.Note{
+		Title:    "1.数组",
+		RootPath: "/data/wangyiwei",
+		NotePath: "/data/wangyiwei/c++/c++基础/bilibili",
+		UUID:     "111",
+	}
+	b := convertNotesToObj(&a)
+	fmt.Println(b)
 	//watcher, err := fsnotify.NewWatcher() //1. 先new
 	//if err != nil {
 	//	log.Fatal(err)

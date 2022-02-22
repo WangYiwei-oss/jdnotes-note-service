@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/satori/go.uuid"
 	"path/filepath"
+	"strings"
 )
 
 type NoteCtl struct {
@@ -35,8 +36,8 @@ func (n *NoteCtl) CreateNote(ctx *gin.Context) (int, string) {
 	n.DB.Preload("notes").First(user)
 	note := models.Note{
 		Title:    notePost.Title,
-		RootPath: "/" + filepath.Join("data", notePost.User),
-		NotePath: "/" + filepath.Join("data", notePost.User, notePost.FirstClass, notePost.SecondClass, notePost.ThirdClass),
+		RootPath: "/" + strings.Replace(filepath.Join("data", notePost.User), "\\", "/", -1),
+		NotePath: "/" + strings.Replace(filepath.Join("data", notePost.User, notePost.FirstClass, notePost.SecondClass, notePost.ThirdClass), "\\", "/", -1),
 		NoteType: notePost.NoteType,
 		UUID:     uuid.NewV1().String(),
 	}
@@ -54,8 +55,38 @@ func (n *NoteCtl) DeleteNote(ctx *gin.Context) (int, string) {
 	return 1, "删除笔记"
 }
 
+type NoteModel struct {
+	UUID  string `json:"uuid"`
+	Title string `json:"title"`
+}
+
+func (n *NoteCtl) convertNotesToObj(notes []models.Note) map[string]interface{} {
+	ret := make(map[string]interface{})
+	if notes == nil || len(notes) == 0 {
+		return ret
+	}
+	currentMap := ret
+	for _, note := range notes {
+		relativePath := strings.TrimPrefix(note.NotePath, note.RootPath+"/")
+		classes := strings.Split(relativePath, "/")
+		currentMap = ret
+		for i := 0; i < len(classes); i++ {
+			if _, ok := currentMap[classes[i]]; ok {
+				currentMap = currentMap[classes[i]].(map[string]interface{})
+			} else {
+				currentMap[classes[i]] = make(map[string]interface{})
+				currentMap = currentMap[classes[i]].(map[string]interface{})
+			}
+		}
+		currentMap["m_title"] = map[string]interface{}{
+			"title": note.Title,
+			"uuid":  note.UUID,
+		}
+	}
+	return ret
+}
+
 func (n *NoteCtl) GetUserNotes(ctx *gin.Context) (int, jdft.Json) {
-	fmt.Println("sadasd")
 	userName := ctx.Query("user")
 	if userName == "" {
 		return -300, ""
@@ -66,10 +97,13 @@ func (n *NoteCtl) GetUserNotes(ctx *gin.Context) (int, jdft.Json) {
 		},
 	}
 	n.DB.Preload("Notes").First(user)
-	return 1, user.Notes
+	ret := n.convertNotesToObj(user.Notes)
+	return 1, ret
 }
 
 func (n *NoteCtl) GetNote(ctx *gin.Context) (int, string) {
+	//userName,uuid := ctx.Query("user"),ctx.Query("uuid")
+
 	return 1, "获取笔记内容了"
 }
 
