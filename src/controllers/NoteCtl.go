@@ -102,9 +102,20 @@ func (n *NoteCtl) GetUserNotes(ctx *gin.Context) (int, jdft.Json) {
 }
 
 func (n *NoteCtl) GetNote(ctx *gin.Context) (int, string) {
-	//userName,uuid := ctx.Query("user"),ctx.Query("uuid")
-
-	return 1, "获取笔记内容了"
+	uuid := ctx.Query("uuid")
+	if uuid == "" {
+		return -300, ""
+	}
+	rep, err := n.ES.Get().Index("notes").Id(uuid).Do(ctx)
+	if err != nil {
+		return -301, err.Error()
+	}
+	if rep.Found {
+		ret, _ := rep.Source.MarshalJSON()
+		return 1, string(ret)
+	} else {
+		return -301, "查无此记录"
+	}
 }
 
 func (n *NoteCtl) UpdateNote(ctx *gin.Context) (int, string) {
