@@ -4,5 +4,6 @@ import "github.com/WangYiwei-oss/jdframe/src/jdft"
 
 type User struct {
 	jdft.User
-	Notes []Note
+	RootPath string `json:"root_path" gorm:"column:root_path"`
+	Notes    []Note
 }

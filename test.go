@@ -30,14 +30,16 @@ func convertNotesToObj(note *models.Note) map[string]interface{} {
 }
 
 func main() {
-	a := models.Note{
-		Title:    "1.数组",
-		RootPath: "/data/wangyiwei",
-		NotePath: "/data/wangyiwei/c++/c++基础/bilibili",
-		UUID:     "111",
-	}
-	b := convertNotesToObj(&a)
-	fmt.Println(b)
+	a := "wangyiwei"
+	fmt.Println(a[:strings.LastIndex(a, "e")])
+	//a := models.Note{
+	//	Title:    "1.数组",
+	//	RootPath: "/data/wangyiwei",
+	//	NotePath: "/data/wangyiwei/c++/c++基础/bilibili",
+	//	UUID:     "111",
+	//}
+	//b := convertNotesToObj(&a)
+	//fmt.Println(b)
 	//watcher, err := fsnotify.NewWatcher() //1. 先new
 	//if err != nil {
 	//	log.Fatal(err)
