@@ -9,6 +9,10 @@ func NewMServiceConfig() *MServiceConfig {
 	return &MServiceConfig{}
 }
 
-func (s *MServiceConfig) JdInitCommonService() *services.NotifyProcessor {
+func (s *MServiceConfig) JdInitCommonService() *services.CommonService {
+	return services.NewCommonService()
+}
+
+func (s *MServiceConfig) JdInitNotifyProcessor() *services.NotifyProcessor {
 	return services.NewNotifyProcessor()
 }

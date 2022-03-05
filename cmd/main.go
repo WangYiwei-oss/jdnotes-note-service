@@ -9,7 +9,7 @@ import (
 )
 
 func migration() {
-	//jdft.Gorm.AutoMigrate(&models.Note{})
+	jdft.Gorm.AutoMigrate(&models.Note{})
 	err := jdft.Gorm.AutoMigrate(&models.User{})
 	if err != nil {
 		fmt.Println("迁移user表错误", err)

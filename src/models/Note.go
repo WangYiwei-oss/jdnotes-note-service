@@ -6,7 +6,7 @@ import (
 
 type Note struct {
 	gorm.Model
-	Title    string `gorm:"column:note_name;type:varchar(20);NOT NULL" json:"title"`
+	Title    string `gorm:"column:title;type:varchar(20);NOT NULL" json:"title"`
 	RootPath string `gorm:"column:root_path;type:varchar(50);NOT NULL" json:"root_path"`
 	NotePath string `gorm:"column:note_path;type:varchar(50);NOT NULL" json:"note_path"`
 	NoteType uint   `gorm:"column:note_type;type:uint;NOT NULL" json:"note_type"`

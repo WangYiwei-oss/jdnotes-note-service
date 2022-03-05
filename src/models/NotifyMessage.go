@@ -7,3 +7,8 @@ type NotifyMessage struct {
 	SrcPath     string `json:"src_path"`
 	DestPath    string `json:"dest_path"`
 }
+
+type NotifyMessageWithContent struct {
+	NotifyMessage
+	Content string `json:"content"`
+}

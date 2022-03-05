@@ -49,8 +49,49 @@ func (n *NoteNotify) MoveDir(ctx *gin.Context) int {
 	return 1
 }
 
+func (n *NoteNotify) AddFile(ctx *gin.Context) int {
+	message := &models.NotifyMessageWithContent{}
+	err := ctx.ShouldBindJSON(message)
+	if err != nil {
+		fmt.Println(err)
+		return -400
+	}
+	n.NoteService.AddFile(ctx, message)
+	return 1
+}
+
+// UpdateFile 更新文件内容
+func (n *NoteNotify) UpdateFile(ctx *gin.Context) int {
+	message := &models.NotifyMessageWithContent{}
+	err := ctx.ShouldBindJSON(message)
+	if err != nil {
+		fmt.Println(err)
+		return -400
+	}
+	n.NoteService.UpdateFile(ctx, message)
+	return 1
+}
+
+// MoveFile 移动文件
+func (n *NoteNotify) MoveFile(ctx *gin.Context) int {
+	message := &models.NotifyMessage{}
+	err := ctx.ShouldBindJSON(message)
+	if err != nil {
+		fmt.Println(err)
+		return -400
+	}
+	err = n.NoteService.MoveFile(message)
+	if err != nil {
+		return -400
+	}
+	return 1
+}
+
 func (n *NoteNotify) Build(jdft *jdft.Jdft) {
-	jdft.Handle("DELETE", "notify/note", n.DeleteFile)
-	jdft.Handle("PUT", "notify/note", n.MoveDir)
-	jdft.Handle("POST", "note/notify", n.ProcessMessage)
+	jdft.Handle("DELETE", "notify/file", n.DeleteFile) //删除文件或文件夹
+	jdft.Handle("PUT", "notify/dir", n.MoveDir)        //修改文件夹名
+	jdft.Handle("POST", "notify/file", n.AddFile)      //增加文件
+	jdft.Handle("PATCH", "notify/file", n.MoveFile)    //移动文件
+	jdft.Handle("PUT", "notify/file", n.UpdateFile)    //修改文件内容
+	jdft.Handle("POST", "notify/test", n.ProcessMessage)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/WangYiwei-oss/jdframe/src/configs"
 	"github.com/WangYiwei-oss/jdframe/src/jdft"
 	"github.com/WangYiwei-oss/jdnotes-note-service/src/models"
+	"github.com/WangYiwei-oss/jdnotes-note-service/src/services"
 	"github.com/gin-gonic/gin"
 	"github.com/satori/go.uuid"
 	"path/filepath"
@@ -13,8 +14,9 @@ import (
 )
 
 type NoteCtl struct {
-	DB *configs.GormAdapter `inject:"-"`
-	ES *configs.EsAdapter   `inject:"-"`
+	DB *configs.GormAdapter    `inject:"-"`
+	ES *configs.EsAdapter      `inject:"-"`
+	C  *services.CommonService `inject:"-"`
 }
 
 func NewNoteCtl() *NoteCtl {
@@ -60,32 +62,6 @@ type NoteModel struct {
 	Title string `json:"title"`
 }
 
-func (n *NoteCtl) convertNotesToObj(notes []models.Note) map[string]interface{} {
-	ret := make(map[string]interface{})
-	if notes == nil || len(notes) == 0 {
-		return ret
-	}
-	currentMap := ret
-	for _, note := range notes {
-		relativePath := strings.TrimPrefix(note.NotePath, note.RootPath+"/")
-		classes := strings.Split(relativePath, "/")
-		currentMap = ret
-		for i := 0; i < len(classes); i++ {
-			if _, ok := currentMap[classes[i]]; ok {
-				currentMap = currentMap[classes[i]].(map[string]interface{})
-			} else {
-				currentMap[classes[i]] = make(map[string]interface{})
-				currentMap = currentMap[classes[i]].(map[string]interface{})
-			}
-		}
-		currentMap["m_title"] = map[string]interface{}{
-			"title": note.Title,
-			"uuid":  note.UUID,
-		}
-	}
-	return ret
-}
-
 func (n *NoteCtl) GetUserNotes(ctx *gin.Context) (int, jdft.Json) {
 	userName := ctx.Query("user")
 	if userName == "" {
@@ -97,7 +73,7 @@ func (n *NoteCtl) GetUserNotes(ctx *gin.Context) (int, jdft.Json) {
 		},
 	}
 	n.DB.Preload("Notes").First(user)
-	ret := n.convertNotesToObj(user.Notes)
+	ret := n.C.ConvertNotesToObj(user.Notes)
 	return 1, ret
 }
 
