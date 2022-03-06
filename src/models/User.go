@@ -7,3 +7,7 @@ type User struct {
 	RootPath string `json:"root_path" gorm:"column:root_path"`
 	Notes    []Note
 }
+
+type UserNameModel struct {
+	UserName string `json:"user_name"`
+}

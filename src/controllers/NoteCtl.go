@@ -42,6 +42,7 @@ func (n *NoteCtl) CreateNote(ctx *gin.Context) (int, string) {
 		NotePath: "/" + strings.Replace(filepath.Join("data", notePost.User, notePost.FirstClass, notePost.SecondClass, notePost.ThirdClass), "\\", "/", -1),
 		NoteType: notePost.NoteType,
 		UUID:     uuid.NewV1().String(),
+		Proto:    services.MD,
 	}
 	user.Notes = append(user.Notes, note)
 	n.DB.Save(user)

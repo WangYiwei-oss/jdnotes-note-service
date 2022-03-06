@@ -25,11 +25,17 @@ func NewNotifyProcessor() *NotifyProcessor {
 func (n *NotifyProcessor) AddFile(ctx *gin.Context, message *models.NotifyMessageWithContent) {
 	user := n.C.GetUserWithNote(message.Username)
 	index := strings.LastIndex(message.SrcPath, "/")
+	rootPath := GetUserRootPath(user)
+	notePath := ReplaceRootPath(user, message.SrcPath[:index+1])
+	if rootPath == notePath {
+		return
+	}
 	note := models.Note{
 		Title:    DeleteExt(message.SrcPath[index+1:]),
-		RootPath: GetUserRootPath(user),
-		NotePath: ReplaceRootPath(user, message.SrcPath[:index+1]),
+		RootPath: rootPath,
+		NotePath: notePath,
 		UUID:     uuid.NewV1().String(),
+		Proto:    message.Proto,
 	}
 	user.Notes = append(user.Notes, note)
 	n.DB.Save(user)
@@ -75,7 +81,7 @@ func (n *NotifyProcessor) MoveFile(message *models.NotifyMessage) error {
 	return nil
 }
 
-func (n *NotifyProcessor) DelFile(message *models.NotifyMessage) {
+func (n *NotifyProcessor) DelFile(ctx *gin.Context, message *models.NotifyMessage) {
 	user := n.C.GetUser(message.Username)
 	notes := make([]models.Note, 0)
 	path := path.Join("/", "data", user.UserName, strings.TrimPrefix(message.SrcPath, user.RootPath))
@@ -89,7 +95,8 @@ func (n *NotifyProcessor) DelFile(message *models.NotifyMessage) {
 		n.DB.Exec(fmt.Sprintf("DELETE FROM notes where user_id=%d and title='%s' and note_path='%s'", user.ID, title, notePath))
 	} else {
 		for _, note := range notes {
-			n.DB.Delete(&models.Note{}, note.ID)
+			n.DB.Unscoped().Delete(&models.Note{}, note.ID)
+			n.ES.Delete().Id(note.UUID).Do(ctx)
 		}
 	}
 }
@@ -125,4 +132,19 @@ func (n *NotifyProcessor) UpdateDir(message *models.NotifyMessage) {
 			n.DB.Save(&note)
 		}
 	}
+}
+
+func (n *NotifyProcessor) DeleteAllUserNote(ctx *gin.Context, username string) {
+	user := n.C.GetUserWithNote(username)
+	for _, note := range user.Notes {
+		if note.NoteType == 0 {
+			fmt.Println("删除笔记", note.ID)
+			n.DB.Unscoped().Delete(&note)
+			n.ES.Delete().Id(note.UUID).Do(ctx)
+		}
+	}
+}
+
+func (n *NotifyProcessor) ChangeRoot(model *models.ChangeUserRootModel) {
+	n.DB.Model(&models.User{}).Where("user_name = ?", model.Username).Update("root_path", model.NewRoot)
 }

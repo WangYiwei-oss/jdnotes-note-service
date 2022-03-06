@@ -11,6 +11,7 @@ type Note struct {
 	NotePath string `gorm:"column:note_path;type:varchar(50);NOT NULL" json:"note_path"`
 	NoteType uint   `gorm:"column:note_type;type:uint;NOT NULL" json:"note_type"`
 	UUID     string `gorm:"column:uuid;type:varchar(50);NOT NULL" json:"uuid"`
+	Proto    string `gorm:"column:proto;type:varchar(10);NOT NULL" json:"proto"`
 	UserID   uint   //外键索引
 }
 

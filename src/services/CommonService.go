@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+const (
+	MD   = "md"
+	HTML = "html"
+	TXT  = "txt"
+	DOC  = "doc"
+)
+
 type CommonService struct {
 	DB *configs.GormAdapter `inject:"-"`
 }

@@ -34,7 +34,7 @@ func (n *NoteNotify) DeleteFile(ctx *gin.Context) int {
 		fmt.Println(err)
 		return -400
 	}
-	n.NoteService.DelFile(message)
+	n.NoteService.DelFile(ctx, message)
 	return 1
 }
 
@@ -87,6 +87,28 @@ func (n *NoteNotify) MoveFile(ctx *gin.Context) int {
 	return 1
 }
 
+func (n *NoteNotify) ChangeRootDir(ctx *gin.Context) int {
+	message := &models.ChangeUserRootModel{}
+	err := ctx.ShouldBindJSON(message)
+	if err != nil {
+		fmt.Println(err)
+		return -400
+	}
+	n.NoteService.ChangeRoot(message)
+	return 1
+}
+
+func (n *NoteNotify) DeleteAllUserNote(ctx *gin.Context) int {
+	username := &models.UserNameModel{}
+	err := ctx.ShouldBindJSON(username)
+	if err != nil {
+		fmt.Println(err)
+		return -400
+	}
+	n.NoteService.DeleteAllUserNote(ctx, username.UserName)
+	return 1
+}
+
 func (n *NoteNotify) Build(jdft *jdft.Jdft) {
 	jdft.Handle("DELETE", "notify/file", n.DeleteFile) //删除文件或文件夹
 	jdft.Handle("PUT", "notify/dir", n.MoveDir)        //修改文件夹名
@@ -94,4 +116,6 @@ func (n *NoteNotify) Build(jdft *jdft.Jdft) {
 	jdft.Handle("PATCH", "notify/file", n.MoveFile)    //移动文件
 	jdft.Handle("PUT", "notify/file", n.UpdateFile)    //修改文件内容
 	jdft.Handle("POST", "notify/test", n.ProcessMessage)
+	jdft.Handle("PATCH", "notify/user_root", n.ChangeRootDir)       //用户改变根目录
+	jdft.Handle("DELETE", "notify/user_notes", n.DeleteAllUserNote) //删除用户全部笔记
 }
