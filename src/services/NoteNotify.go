@@ -23,6 +23,7 @@ func NewNotifyProcessor() *NotifyProcessor {
 }
 
 func (n *NotifyProcessor) AddFile(ctx *gin.Context, message *models.NotifyMessageWithContent) {
+	log.Println("触发创建文件", message.SrcPath, message.DestPath, message.IsDirectory)
 	user := n.C.GetUserWithNote(message.Username)
 	index := strings.LastIndex(message.SrcPath, "/")
 	rootPath := GetUserRootPath(user)
@@ -47,6 +48,7 @@ func (n *NotifyProcessor) AddFile(ctx *gin.Context, message *models.NotifyMessag
 }
 
 func (n *NotifyProcessor) UpdateFile(ctx *gin.Context, message *models.NotifyMessageWithContent) {
+	log.Println("触发改变文件", message.SrcPath, message.DestPath, message.IsDirectory)
 	user := n.C.GetUser(message.Username)
 	index := strings.LastIndex(message.SrcPath, "/")
 	title := DeleteExt(message.SrcPath[index+1:])
@@ -56,6 +58,10 @@ func (n *NotifyProcessor) UpdateFile(ctx *gin.Context, message *models.NotifyMes
 		Where("user_id = ?", user.ID).
 		Where("title = ?", title).
 		Where("note_path = ?", notePath).First(note)
+	if note.ID == 0 { //复制一个文件进来时也会触发modify，所以如果找不到就添加
+		n.AddFile(ctx, message)
+		return
+	}
 	esNote := &models.EsNote{
 		Text: message.Content,
 	}
@@ -64,6 +70,7 @@ func (n *NotifyProcessor) UpdateFile(ctx *gin.Context, message *models.NotifyMes
 }
 
 func (n *NotifyProcessor) MoveFile(message *models.NotifyMessage) error {
+	log.Println("触发移动文件", message.SrcPath, message.DestPath, message.IsDirectory)
 	user := n.C.GetUser(message.Username)
 	index := strings.LastIndex(message.SrcPath, "/")
 	title := DeleteExt(message.SrcPath[index+1:])
@@ -82,6 +89,7 @@ func (n *NotifyProcessor) MoveFile(message *models.NotifyMessage) error {
 }
 
 func (n *NotifyProcessor) DelFile(ctx *gin.Context, message *models.NotifyMessage) {
+	log.Println("触发删除文件", message.SrcPath, message.DestPath, message.IsDirectory)
 	user := n.C.GetUser(message.Username)
 	notes := make([]models.Note, 0)
 	path := path.Join("/", "data", user.UserName, strings.TrimPrefix(message.SrcPath, user.RootPath))
@@ -96,7 +104,7 @@ func (n *NotifyProcessor) DelFile(ctx *gin.Context, message *models.NotifyMessag
 	} else {
 		for _, note := range notes {
 			n.DB.Unscoped().Delete(&models.Note{}, note.ID)
-			n.ES.Delete().Id(note.UUID).Do(ctx)
+			n.ES.Delete().Id(note.UUID).Do(ctx) //es删除
 		}
 	}
 }
@@ -106,35 +114,41 @@ func (n *NotifyProcessor) AddDir() {
 }
 
 func (n *NotifyProcessor) UpdateDir(message *models.NotifyMessage) {
+	log.Println("触发改变文件夹", message.SrcPath, message.DestPath, message.IsDirectory)
 	user := n.C.GetUser(message.Username)
-	prefix, suffix := "/", ""
+	//prefix, suffix := "/", ""
 	srcPath := path.Join("/", "data", user.UserName, strings.TrimPrefix(message.SrcPath, user.RootPath))
 	dstPath := path.Join("/", "data", user.UserName, strings.TrimPrefix(message.DestPath, user.RootPath))
-	srcSlice := strings.Split(srcPath, "/")
-	dstSlice := strings.Split(dstPath, "/")
-	fmt.Println(srcSlice, dstSlice)
-	i := 0
-	for ; i < len(srcSlice); i++ {
-		if srcSlice[i] == dstSlice[i] {
-			prefix = path.Join(prefix, srcSlice[i])
-		} else {
-			break
-		}
-	}
-	for j := i + 1; j < len(dstSlice); j++ {
-		suffix += dstSlice[j]
-	}
+	//srcSlice := strings.Split(srcPath, "/")
+	//dstSlice := strings.Split(dstPath, "/")
+	//fmt.Println(srcSlice, dstSlice)
+	//i := 0
+	//for ; i < len(srcSlice); i++ {
+	//	if srcSlice[i] == dstSlice[i] {
+	//		prefix = path.Join(prefix, srcSlice[i])
+	//	} else {
+	//		break
+	//	}
+	//}
+	//for j := i + 1; j < len(srcSlice); j++ {
+	//	suffix += dstSlice[j]
+	//}
 	notes := make([]models.Note, 0)
-	n.DB.Raw(fmt.Sprintf("select * from notes where user_id=1 and note_path LIKE CONCAT ('%s%%','%%%s');", prefix, suffix)).Find(&notes)
+	//fmt.Println(prefix,suffix)
+	//n.DB.Raw(fmt.Sprintf("select * from notes where user_id=1 and note_path LIKE CONCAT ('%s%%','%%%s');", prefix, suffix)).Find(&notes)
+	n.DB.Raw(fmt.Sprintf("select * from notes where user_id=1 and note_path='%s';", srcPath)).Find(&notes)
 	for _, note := range notes {
-		if len(strings.Split(note.NotePath, "/")) == len(srcSlice) {
-			note.NotePath = path.Join(prefix, dstSlice[i], suffix)
-			n.DB.Save(&note)
-		}
+		//if len(strings.Split(note.NotePath, "/")) == len(srcSlice) {
+		//	note.NotePath = path.Join(prefix, dstSlice[i], suffix)
+		//	n.DB.Save(&note)
+		//}
+		note.NotePath = dstPath
+		n.DB.Save(&note)
 	}
 }
 
 func (n *NotifyProcessor) DeleteAllUserNote(ctx *gin.Context, username string) {
+	log.Println("触发删除用户所有文件")
 	user := n.C.GetUserWithNote(username)
 	for _, note := range user.Notes {
 		if note.NoteType == 0 {
@@ -146,5 +160,6 @@ func (n *NotifyProcessor) DeleteAllUserNote(ctx *gin.Context, username string) {
 }
 
 func (n *NotifyProcessor) ChangeRoot(model *models.ChangeUserRootModel) {
+	fmt.Println("====================更换源", model)
 	n.DB.Model(&models.User{}).Where("user_name = ?", model.Username).Update("root_path", model.NewRoot)
 }
